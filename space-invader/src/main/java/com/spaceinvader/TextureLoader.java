@@ -22,6 +22,11 @@ public class TextureLoader {
                 throw new RuntimeException("Failed to load texture: " + STBImage.stbi_failure_reason());
             }
 
+            if (textureID == 0) {
+                throw new RuntimeException("Échec du chargement de la texture !");
+            }
+            
+
             GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, width.get(), height.get(), 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, image);
 
             STBImage.stbi_image_free(image);
