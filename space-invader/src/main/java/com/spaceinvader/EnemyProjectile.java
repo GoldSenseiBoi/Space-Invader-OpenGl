@@ -17,6 +17,7 @@ public class EnemyProjectile {
 
     public void render() {
         GL11.glBegin(GL11.GL_QUADS);
+        
         GL11.glVertex2f(x - 0.02f, y - 0.05f);
         GL11.glVertex2f(x + 0.02f, y - 0.05f);
         GL11.glVertex2f(x + 0.02f, y + 0.05f);

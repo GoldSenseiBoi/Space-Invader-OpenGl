@@ -33,4 +33,12 @@ public class Barrier {
     public boolean isDestroyed() {
         return health <= 0;
     }
+
+    public float getY() {
+        return y;
+    }
+
+    public float getX() {
+        return x;
+    }
 }

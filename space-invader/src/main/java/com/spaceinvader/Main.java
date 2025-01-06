@@ -15,13 +15,16 @@ public class Main {
     private static List<Projectile> projectiles = new ArrayList<>();
     private static List<Bonus> bonuses = new ArrayList<>();
     private static List<Enemy> enemies = new ArrayList<>();
+    private static List<Barrier> barriers = new ArrayList<>(); // Barrières de protection
     private static int[] numberTextures = new int[10];
+    private static List<EnemyProjectile> enemyProjectiles = new ArrayList<>();
     private static int backgroundTexture;
     private static float backgroundScroll = 0.0f;
     private static int lifeBonusTexture;
     private static int scoreBonusTexture;
     private static int firepowerBonusTexture;
     private static int scoreLabelTexture;
+    private static int barrierTexture;
     private static int score = 0;
     public static void main(String[] args) {
         // Initialisation GLFW
@@ -45,7 +48,13 @@ public class Main {
         lifeBonusTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\life.png");
         scoreBonusTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\scoreBonus.png");
         firepowerBonusTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\fireshot.png");
-        
+        barrierTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\barrier.png");
+
+       // Ajouter des barrières avec des positions prédéfinies
+        barriers.add(new Barrier(-0.6f, -0.5f));
+        barriers.add(new Barrier(0.0f, -0.5f));
+        barriers.add(new Barrier(0.6f, -0.5f));
+
         for (int i = 0; i < 10; i++) {
             numberTextures[i] = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\" + i + ".png");
         }
@@ -172,11 +181,45 @@ public class Main {
             GL11.glEnd();
             GL11.glPopMatrix();
 
+            for (Barrier barrier : barriers) {
+                GL11.glBindTexture(GL11.GL_TEXTURE_2D, barrierTexture);
+                GL11.glPushMatrix();
+                GL11.glTranslatef(barrier.getX(), barrier.getY(), 0f); // Position de la barrière
+                GL11.glBegin(GL11.GL_QUADS);
+                GL11.glTexCoord2f(0, 1); GL11.glVertex2f(-0.1f, -0.05f);
+                GL11.glTexCoord2f(1, 1); GL11.glVertex2f(0.1f, -0.05f);
+                GL11.glTexCoord2f(1, 0); GL11.glVertex2f(0.1f, 0.05f);
+                GL11.glTexCoord2f(0, 0); GL11.glVertex2f(-0.1f, 0.05f);
+                GL11.glEnd();
+                GL11.glPopMatrix();
+            }
+            
+
             Iterator<Projectile> projectileIterator = projectiles.iterator();
             while (projectileIterator.hasNext()) {
                 Projectile projectile = projectileIterator.next();
                 projectile.update();
                 projectile.render();
+
+                Iterator<EnemyProjectile> enemyProjectileIterator = enemyProjectiles.iterator();
+                while (enemyProjectileIterator.hasNext()) {
+                    EnemyProjectile enemyProjectile = enemyProjectileIterator.next(); // Renommé en enemyProjectile
+                    enemyProjectile.update();
+                    enemyProjectile.render();
+
+                    // Collision avec le joueur
+                    if (Math.abs(enemyProjectile.getX() - playerX) < 0.1f && enemyProjectile.getY() < -0.7f) {
+                        System.out.println("Le joueur a été touché !");
+                        enemyProjectileIterator.remove();
+                    }
+                
+                    // Supprimer les projectiles hors de l'écran
+                    if (enemyProjectile.getY() < -1.0f) {
+                        enemyProjectileIterator.remove();
+                    }
+                }
+                
+                
 
                 Iterator<Enemy> enemyIterator = enemies.iterator();
                 while (enemyIterator.hasNext()) {
@@ -191,6 +234,22 @@ public class Main {
                     }
                 }
 
+                Iterator<Barrier> barrierIterator = barriers.iterator();
+                while (barrierIterator.hasNext()) {
+                    Barrier barrier = barrierIterator.next();
+                    if (barrier.isHit(projectile.getX(), projectile.getY())) {
+                        barrier.takeDamage();
+                        projectileIterator.remove();
+                        System.out.println("Barrière touchée !");
+                        if (barrier.isDestroyed()) {
+                            barrierIterator.remove();
+                            System.out.println("Barrière détruite !");
+                        }
+                        break;
+                    }
+                }
+
+
                 // Supprimer les projectiles hors de l'écran
                 if (projectile.getY() > 1.0f) {
                     projectileIterator.remove();
@@ -200,7 +259,13 @@ public class Main {
             for (Enemy enemy : enemies) {
                 enemy.update();
                 enemy.render();
+            
+                // Probabilité de tir (par exemple, 1% à chaque frame)
+                if (Math.random() < 0.01) {
+                    enemyProjectiles.add(new EnemyProjectile(enemy.getX(), enemy.getY() - 0.1f));
+                }
             }
+            
             
             
             
