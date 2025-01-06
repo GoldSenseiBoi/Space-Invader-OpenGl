@@ -19,6 +19,13 @@ public class Main {
     private static int[] numberTextures = new int[10];
     private static List<EnemyProjectile> enemyProjectiles = new ArrayList<>();
     private static int backgroundTexture;
+    private static int enemyProjectileTexture;
+    private static boolean isIntro = true; // Le jeu commence sur la page d'intro
+    private static int titleTexture;
+
+
+    private static int pressEnterTexture;
+
     private static float backgroundScroll = 0.0f;
     private static int lifeBonusTexture;
     private static int scoreBonusTexture;
@@ -26,6 +33,7 @@ public class Main {
     private static int scoreLabelTexture;
     private static int barrierTexture;
     private static int score = 0;
+    private static int bonusTimer = 0;
     public static void main(String[] args) {
         // Initialisation GLFW
         if (!GLFW.glfwInit()) {
@@ -49,6 +57,13 @@ public class Main {
         scoreBonusTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\scoreBonus.png");
         firepowerBonusTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\fireshot.png");
         barrierTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\barrier.png");
+        enemyProjectileTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\shot.png");
+        titleTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\TitreIntro.png");
+        pressEnterTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\PressEnter.png");
+
+        
+
+
 
        // Ajouter des barrières avec des positions prédéfinies
         barriers.add(new Barrier(-0.6f, -0.5f));
@@ -82,48 +97,37 @@ public class Main {
 
         // Boucle principale
         while (!GLFW.glfwWindowShouldClose(window)) {
-            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
 
+            if (isIntro) {
+                renderIntro();
+                if (GLFW.glfwGetKey(window, GLFW.GLFW_KEY_ENTER) == GLFW.GLFW_PRESS) {
+                    isIntro = false; // Quitter la page d'intro
+                }
+            } else {
+                
+            
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+        
             // Limiter les déplacements aux bords de l'écran
             if (playerX < -0.9f) {
                 playerX = -0.9f; // Limite gauche
             } else if (playerX > 0.9f) {
                 playerX = 0.9f; // Limite droite
             }
-            // Afficher l’arrière-plan
-            renderBackground();
-
-            // Afficher le reste (vaisseau, projectiles, ennemis, score)
-            backgroundScroll += 0.003f; // Ajuste la vitesse de défilement
-            if (backgroundScroll >= 1.0f) {
-                backgroundScroll = 0.0f; // Réinitialise le défilement
-            }
-
-        int bonusTimer = 0;
-
-        while (!GLFW.glfwWindowShouldClose(window)) {
-            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-
-            // Limiter les déplacements aux bords de l'écran
-            if (playerX < -0.9f) {
-                playerX = -0.9f; // Limite gauche
-            } else if (playerX > 0.9f) {
-                playerX = 0.9f; // Limite droite
-            }
-
+        
             // Afficher l’arrière-plan
             renderBackground();
             backgroundScroll += 0.003f;
             if (backgroundScroll >= 1.0f) {
-                backgroundScroll = 0.0f;
+                backgroundScroll = 0.0f; // Réinitialise le défilement
             }
-
+        
             // Gérer les bonus
             bonusTimer++;
             if (bonusTimer >= 600) { // Toutes les 10 secondes (600 frames à 60 FPS)
                 float randomX = (float) (Math.random() * 1.8f - 0.9f); // Position aléatoire en X
                 int bonusType = (int) (Math.random() * 3); // Type de bonus aléatoire
-
+        
                 switch (bonusType) {
                     case 0:
                         bonuses.add(new Bonus(randomX, 1.0f, lifeBonusTexture, "life"));
@@ -137,14 +141,14 @@ public class Main {
                 }
                 bonusTimer = 0; // Réinitialise le compteur
             }
-
+        
             // Mettre à jour et rendre les bonus
             Iterator<Bonus> bonusIterator = bonuses.iterator();
             while (bonusIterator.hasNext()) {
                 Bonus bonus = bonusIterator.next();
                 bonus.update();
                 bonus.render();
-
+        
                 // Collision avec le joueur
                 if (Math.abs(bonus.getX() - playerX) < 0.1f && bonus.getY() < -0.7f) {
                     switch (bonus.getType()) {
@@ -161,26 +165,26 @@ public class Main {
                     }
                     bonusIterator.remove(); // Supprimer le bonus après collecte
                 }
-
+        
                 // Supprimer les bonus hors de l'écran
                 if (bonus.getY() < -1.0f) {
                     bonusIterator.remove();
                 }
             }
-
-            // Affichage du joueur avec position mise à jour
+        
+            // Affichage du joueur
             GL11.glPushMatrix();
             GL11.glTranslatef(playerX, -0.8f, 0f); // Déplacer horizontalement et fixer la position verticale
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, playerTexture);
             GL11.glBegin(GL11.GL_QUADS);
-            // Coordonnées modifiées pour inverser l'image verticalement
             GL11.glTexCoord2f(0, 1); GL11.glVertex2f(-0.1f, -0.1f);
             GL11.glTexCoord2f(1, 1); GL11.glVertex2f(0.1f, -0.1f);
             GL11.glTexCoord2f(1, 0); GL11.glVertex2f(0.1f, 0.1f);
             GL11.glTexCoord2f(0, 0); GL11.glVertex2f(-0.1f, 0.1f);
             GL11.glEnd();
             GL11.glPopMatrix();
-
+        
+            // Afficher les barrières
             for (Barrier barrier : barriers) {
                 GL11.glBindTexture(GL11.GL_TEXTURE_2D, barrierTexture);
                 GL11.glPushMatrix();
@@ -193,34 +197,15 @@ public class Main {
                 GL11.glEnd();
                 GL11.glPopMatrix();
             }
-            
-
+        
+            // Gérer les projectiles du joueur
             Iterator<Projectile> projectileIterator = projectiles.iterator();
             while (projectileIterator.hasNext()) {
                 Projectile projectile = projectileIterator.next();
                 projectile.update();
                 projectile.render();
-
-                Iterator<EnemyProjectile> enemyProjectileIterator = enemyProjectiles.iterator();
-                while (enemyProjectileIterator.hasNext()) {
-                    EnemyProjectile enemyProjectile = enemyProjectileIterator.next(); // Renommé en enemyProjectile
-                    enemyProjectile.update();
-                    enemyProjectile.render();
-
-                    // Collision avec le joueur
-                    if (Math.abs(enemyProjectile.getX() - playerX) < 0.1f && enemyProjectile.getY() < -0.7f) {
-                        System.out.println("Le joueur a été touché !");
-                        enemyProjectileIterator.remove();
-                    }
-                
-                    // Supprimer les projectiles hors de l'écran
-                    if (enemyProjectile.getY() < -1.0f) {
-                        enemyProjectileIterator.remove();
-                    }
-                }
-                
-                
-
+        
+                // Vérifier les collisions avec les ennemis
                 Iterator<Enemy> enemyIterator = enemies.iterator();
                 while (enemyIterator.hasNext()) {
                     Enemy enemy = enemyIterator.next();
@@ -234,52 +219,104 @@ public class Main {
                     }
                 }
 
-                Iterator<Barrier> barrierIterator = barriers.iterator();
-                while (barrierIterator.hasNext()) {
-                    Barrier barrier = barrierIterator.next();
-                    if (barrier.isHit(projectile.getX(), projectile.getY())) {
-                        barrier.takeDamage();
-                        projectileIterator.remove();
-                        System.out.println("Barrière touchée !");
-                        if (barrier.isDestroyed()) {
-                            barrierIterator.remove();
-                            System.out.println("Barrière détruite !");
-                        }
-                        break;
-                    }
-                }
-
-
+                
+        
                 // Supprimer les projectiles hors de l'écran
                 if (projectile.getY() > 1.0f) {
                     projectileIterator.remove();
                 }
             }
-            
+        
+            // Afficher les ennemis
             for (Enemy enemy : enemies) {
                 enemy.update();
                 enemy.render();
-            
-                // Probabilité de tir (par exemple, 1% à chaque frame)
-                if (Math.random() < 0.01) {
+        
+                // Les ennemis peuvent tirer
+                if (Math.random() < 0.001) { // Probabilité de tir
                     enemyProjectiles.add(new EnemyProjectile(enemy.getX(), enemy.getY() - 0.1f));
                 }
             }
+        
+            // Gérer les tirs des ennemis
             
-            
-            
-            
+        Iterator<EnemyProjectile> enemyProjectileIterator = enemyProjectiles.iterator();
+        while (enemyProjectileIterator.hasNext()) {
+            EnemyProjectile enemyProjectile = enemyProjectileIterator.next();
+            enemyProjectile.update();
+            enemyProjectile.render();
+
+            // Vérifier les collisions avec les barrières
+            Iterator<Barrier> barrierIterator = barriers.iterator();
+            while (barrierIterator.hasNext()) {
+                Barrier barrier = barrierIterator.next();
+                if (barrier.isHit(enemyProjectile.getX(), enemyProjectile.getY())) {
+                    barrier.takeDamage(); // Réduire la durabilité de la barrière
+                    enemyProjectileIterator.remove(); // Supprimer le projectile ennemi après l'impact
+                    System.out.println("Barrière touchée !");
+                    if (barrier.isDestroyed()) {
+                        barrierIterator.remove(); // Supprimer la barrière si elle est détruite
+                        System.out.println("Barrière détruite !");
+                    }
+                    break; // Quitter la boucle des barrières après une collision
+                }
+            }
+
+            // Collision avec le joueur
+            if (Math.abs(enemyProjectile.getX() - playerX) < 0.1f && enemyProjectile.getY() < -0.7f) {
+                System.out.println("Le joueur a été touché !");
+                enemyProjectileIterator.remove();
+            }
+
+            // Supprimer les projectiles ennemis hors écran
+            if (enemyProjectile.getY() < -1.0f) {
+                enemyProjectileIterator.remove();
+            }
+        }
+
+        
+            // Afficher le score
             renderScoreLabel(-0.9f, 0.9f, 1.0f); // Affiche "Score" en haut à gauche
             renderScore(score, -0.6f, 0.9f, 1.0f); // Affiche le score à côté
-            
-            
-            
+    }
+            // Échanger les buffers et traiter les événements
             GLFW.glfwSwapBuffers(window);
             GLFW.glfwPollEvents();
         }
-    }
+        
+        // Terminer GLFW
         GLFW.glfwTerminate();
+        
     }
+
+    private static void renderIntro() {
+        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT); // Nettoyer l'écran
+    
+        // Afficher l'image de titre
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, titleTexture);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2f(0, 0); GL11.glVertex2f(-0.8f, 0.5f);  // Coin supérieur gauche
+        GL11.glTexCoord2f(1, 0); GL11.glVertex2f(0.8f, 0.5f);   // Coin supérieur droit
+        GL11.glTexCoord2f(1, 1); GL11.glVertex2f(0.8f, -0.2f);  // Coin inférieur droit
+        GL11.glTexCoord2f(0, 1); GL11.glVertex2f(-0.8f, -0.2f); // Coin inférieur gauche
+        GL11.glEnd();
+    
+        // Afficher "Press Enter to Start"
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, pressEnterTexture);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2f(0, 0); GL11.glVertex2f(-0.4f, -0.6f);  // Coin supérieur gauche
+        GL11.glTexCoord2f(1, 0); GL11.glVertex2f(0.4f, -0.6f);   // Coin supérieur droit
+        GL11.glTexCoord2f(1, 1); GL11.glVertex2f(0.4f, -0.8f);   // Coin inférieur droit
+        GL11.glTexCoord2f(0, 1); GL11.glVertex2f(-0.4f, -0.8f);  // Coin inférieur gauche
+        GL11.glEnd();
+    }
+    
+    
+    
+    
+    
+    
+    
     private static void renderScore(int score, float x, float y, float scale) {
         String scoreStr = String.valueOf(score);
         float offset = 0.1f * scale; // Espace entre chaque chiffre
@@ -324,6 +361,10 @@ public class Main {
         GL11.glTexCoord2f(1, 1 + backgroundScroll); GL11.glVertex2f(1.0f, 1.0f);   // Coin supérieur droit
         GL11.glTexCoord2f(0, 1 + backgroundScroll); GL11.glVertex2f(-1.0f, 1.0f);  // Coin supérieur gauche
         GL11.glEnd();
+    }
+    
+    public static int getEnemyProjectileTexture() {
+        return enemyProjectileTexture;
     }
     
 }

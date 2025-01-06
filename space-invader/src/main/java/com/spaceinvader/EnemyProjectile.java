@@ -12,16 +12,16 @@ public class EnemyProjectile {
     }
 
     public void update() {
-        y -= SPEED; // Les projectiles descendent
+        y -= SPEED; // Descend vers le bas
     }
 
     public void render() {
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, Main.getEnemyProjectileTexture());
         GL11.glBegin(GL11.GL_QUADS);
-        
-        GL11.glVertex2f(x - 0.02f, y - 0.05f);
-        GL11.glVertex2f(x + 0.02f, y - 0.05f);
-        GL11.glVertex2f(x + 0.02f, y + 0.05f);
-        GL11.glVertex2f(x - 0.02f, y + 0.05f);
+        GL11.glTexCoord2f(0, 1); GL11.glVertex2f(x - 0.02f, y - 0.05f);
+        GL11.glTexCoord2f(1, 1); GL11.glVertex2f(x + 0.02f, y - 0.05f);
+        GL11.glTexCoord2f(1, 0); GL11.glVertex2f(x + 0.02f, y + 0.05f);
+        GL11.glTexCoord2f(0, 0); GL11.glVertex2f(x - 0.02f, y + 0.05f);
         GL11.glEnd();
     }
 
