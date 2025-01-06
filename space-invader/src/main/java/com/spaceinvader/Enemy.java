@@ -45,6 +45,10 @@ public class Enemy {
         return y;
     }
 
+    public float getX() {
+        return x;
+    }
+
     public boolean isHit(float projectileX, float projectileY) {
         float enemyWidth = 0.1f; // Largeur approximative de l'ennemi
         float enemyHeight = 0.1f; // Hauteur approximative de l'ennemi

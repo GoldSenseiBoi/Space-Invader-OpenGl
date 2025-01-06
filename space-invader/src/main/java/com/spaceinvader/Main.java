@@ -1,7 +1,5 @@
 package com.spaceinvader;
 
-
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -15,13 +13,16 @@ public class Main {
     private static float playerX = 0f; // Position horizontale initiale
     private static final float PLAYER_SPEED = 0.02f; // Vitesse de déplacement
     private static List<Projectile> projectiles = new ArrayList<>();
+    private static List<Bonus> bonuses = new ArrayList<>();
     private static List<Enemy> enemies = new ArrayList<>();
+    private static int[] numberTextures = new int[10];
+    private static int backgroundTexture;
+    private static float backgroundScroll = 0.0f;
+    private static int lifeBonusTexture;
+    private static int scoreBonusTexture;
+    private static int firepowerBonusTexture;
+    private static int scoreLabelTexture;
     private static int score = 0;
-
-    
-
-
-
     public static void main(String[] args) {
         // Initialisation GLFW
         if (!GLFW.glfwInit()) {
@@ -39,20 +40,21 @@ public class Main {
         int playerTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\JoueurDefault2.png");
         int projectileTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\shot.png");
         int enemyTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\Alien.png");
+        scoreLabelTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\score.png");
+        backgroundTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\space.jpg");
+        lifeBonusTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\life.png");
+        scoreBonusTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\scoreBonus.png");
+        firepowerBonusTexture = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\fireshot.png");
         
-        // Initialiser le TextRenderer
-        
-
-
-
+        for (int i = 0; i < 10; i++) {
+            numberTextures[i] = TextureLoader.loadTexture("space-invader\\src\\main\\resources\\textures\\textures\\" + i + ".png");
+        }
         // Générer des rangées d'ennemis
         for (int i = 0; i < 5; i++) { // 5 rangées
             for (int j = 0; j < 10; j++) { // 10 ennemis par rangée
                 enemies.add(new Enemy(-0.8f + j * 0.15f, 0.8f - i * 0.15f, enemyTexture));
             }
         }
-
-
         GL11.glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Fond gris foncé
 
         // Gestion des entrées clavier
@@ -78,6 +80,83 @@ public class Main {
                 playerX = -0.9f; // Limite gauche
             } else if (playerX > 0.9f) {
                 playerX = 0.9f; // Limite droite
+            }
+            // Afficher l’arrière-plan
+            renderBackground();
+
+            // Afficher le reste (vaisseau, projectiles, ennemis, score)
+            backgroundScroll += 0.003f; // Ajuste la vitesse de défilement
+            if (backgroundScroll >= 1.0f) {
+                backgroundScroll = 0.0f; // Réinitialise le défilement
+            }
+
+        int bonusTimer = 0;
+
+        while (!GLFW.glfwWindowShouldClose(window)) {
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+
+            // Limiter les déplacements aux bords de l'écran
+            if (playerX < -0.9f) {
+                playerX = -0.9f; // Limite gauche
+            } else if (playerX > 0.9f) {
+                playerX = 0.9f; // Limite droite
+            }
+
+            // Afficher l’arrière-plan
+            renderBackground();
+            backgroundScroll += 0.003f;
+            if (backgroundScroll >= 1.0f) {
+                backgroundScroll = 0.0f;
+            }
+
+            // Gérer les bonus
+            bonusTimer++;
+            if (bonusTimer >= 600) { // Toutes les 10 secondes (600 frames à 60 FPS)
+                float randomX = (float) (Math.random() * 1.8f - 0.9f); // Position aléatoire en X
+                int bonusType = (int) (Math.random() * 3); // Type de bonus aléatoire
+
+                switch (bonusType) {
+                    case 0:
+                        bonuses.add(new Bonus(randomX, 1.0f, lifeBonusTexture, "life"));
+                        break;
+                    case 1:
+                        bonuses.add(new Bonus(randomX, 1.0f, scoreBonusTexture, "score"));
+                        break;
+                    case 2:
+                        bonuses.add(new Bonus(randomX, 1.0f, firepowerBonusTexture, "firepower"));
+                        break;
+                }
+                bonusTimer = 0; // Réinitialise le compteur
+            }
+
+            // Mettre à jour et rendre les bonus
+            Iterator<Bonus> bonusIterator = bonuses.iterator();
+            while (bonusIterator.hasNext()) {
+                Bonus bonus = bonusIterator.next();
+                bonus.update();
+                bonus.render();
+
+                // Collision avec le joueur
+                if (Math.abs(bonus.getX() - playerX) < 0.1f && bonus.getY() < -0.7f) {
+                    switch (bonus.getType()) {
+                        case "life":
+                            System.out.println("Bonus : Vie supplémentaire !");
+                            break;
+                        case "score":
+                            score += 100;
+                            System.out.println("Bonus : Score augmenté !");
+                            break;
+                        case "firepower":
+                            System.out.println("Bonus : Tirs améliorés !");
+                            break;
+                    }
+                    bonusIterator.remove(); // Supprimer le bonus après collecte
+                }
+
+                // Supprimer les bonus hors de l'écran
+                if (bonus.getY() < -1.0f) {
+                    bonusIterator.remove();
+                }
             }
 
             // Affichage du joueur avec position mise à jour
@@ -117,22 +196,69 @@ public class Main {
                     projectileIterator.remove();
                 }
             }
-
-
+            
             for (Enemy enemy : enemies) {
                 enemy.update();
                 enemy.render();
             }
-
             
-
             
-
-
+            
+            renderScoreLabel(-0.9f, 0.9f, 1.0f); // Affiche "Score" en haut à gauche
+            renderScore(score, -0.6f, 0.9f, 1.0f); // Affiche le score à côté
+            
+            
+            
             GLFW.glfwSwapBuffers(window);
             GLFW.glfwPollEvents();
         }
-
+    }
         GLFW.glfwTerminate();
     }
+    private static void renderScore(int score, float x, float y, float scale) {
+        String scoreStr = String.valueOf(score);
+        float offset = 0.1f * scale; // Espace entre chaque chiffre
+    
+        for (int i = 0; i < scoreStr.length(); i++) {
+            int digit = scoreStr.charAt(i) - '0'; // Convertir le caractère en chiffre
+            renderDigit(digit, x + i * offset, y, scale);
+        }
+    }
+
+    private static void renderDigit(int digit, float x, float y, float scale) {
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, numberTextures[digit]);
+        GL11.glPushMatrix();
+        GL11.glTranslatef(x, y, 0f);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2f(0, 1); GL11.glVertex2f(-0.05f * scale, -0.05f * scale);
+        GL11.glTexCoord2f(1, 1); GL11.glVertex2f(0.05f * scale, -0.05f * scale);
+        GL11.glTexCoord2f(1, 0); GL11.glVertex2f(0.05f * scale, 0.05f * scale);
+        GL11.glTexCoord2f(0, 0); GL11.glVertex2f(-0.05f * scale, 0.05f * scale);
+        GL11.glEnd();
+        GL11.glPopMatrix();
+    }
+
+    private static void renderScoreLabel(float x, float y, float scale) {
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, scoreLabelTexture);
+        GL11.glPushMatrix();
+        GL11.glTranslatef(x, y, 0f);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2f(0, 1); GL11.glVertex2f(-0.1f * scale, -0.05f * scale); // Réduit la largeur
+        GL11.glTexCoord2f(1, 1); GL11.glVertex2f(0.1f * scale, -0.05f * scale);
+        GL11.glTexCoord2f(1, 0); GL11.glVertex2f(0.1f * scale, 0.05f * scale); // Réduit la hauteur
+        GL11.glTexCoord2f(0, 0); GL11.glVertex2f(-0.1f * scale, 0.05f * scale);
+        GL11.glEnd();
+        GL11.glPopMatrix();
+    }
+
+    private static void renderBackground() {
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, backgroundTexture);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2f(0, backgroundScroll); GL11.glVertex2f(-1.0f, -1.0f); // Coin inférieur gauche
+        GL11.glTexCoord2f(1, backgroundScroll); GL11.glVertex2f(1.0f, -1.0f);  // Coin inférieur droit
+        GL11.glTexCoord2f(1, 1 + backgroundScroll); GL11.glVertex2f(1.0f, 1.0f);   // Coin supérieur droit
+        GL11.glTexCoord2f(0, 1 + backgroundScroll); GL11.glVertex2f(-1.0f, 1.0f);  // Coin supérieur gauche
+        GL11.glEnd();
+    }
+    
 }
